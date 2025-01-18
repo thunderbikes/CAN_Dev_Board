@@ -16,7 +16,7 @@ This project was made to develop CANBus for UBC ThunderBikes. It features 2 STM3
 
 ## CAN_Firmware_Left
 
-This firmware is for the chip on the left (near the USB Connector) and it acts as the “Master”. It sends CAN frames every 0.5 seconds. 
+This firmware is for the chip on the left (near the USB Connector) and it acts as the “Master”. It sends CAN frames.
 
 ## CAN_firmware_Right
 
