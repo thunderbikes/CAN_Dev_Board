@@ -142,6 +142,34 @@ int main(void)
   TxData[6] = 0x07; 
   TxData[7] = 0x08; 
 
+
+
+
+/**
+  * @brief Print CANBUS Error messages 
+  * @author Dean
+  * @retval None
+  */
+
+   const char *error_messages[16] = {
+    "ERR0: Identification error.",
+    "ERR1: Over voltage.",
+    "ERR2: Low voltage.",
+    "ERR3: Reserved.",
+    "ERR4: Stall.",
+    "ERR5: Internal volts fault.",
+    "ERR6: Over temperature.",
+    "ERR7: Throttle error at power-up.",
+    "ERR8: Reserved.",
+    "ERR9: Internal reset.",
+    "ERR10: Hall throttle open or short-circuit.",
+    "ERR11: Angle sensor error.",
+    "ERR12: Reserved.",
+    "ERR13: Reserved.",
+    "ERR14: Motor over-temperature.",
+    "ERR15: Hall galvanometer sensor error."
+};
+
   //char msg[] = "Hello, UART!\r\n";
 
   HAL_CAN_ConfigFilter(&hcan,&canfil);
@@ -239,12 +267,22 @@ void send_uart_message(char *message) {
     HAL_UART_Transmit(&huart1, (uint8_t *)message, strlen(message), HAL_MAX_DELAY);
 }
 
+
+
+/**
+  * @brief Print CANBUS Error messages 
+  * @author Dean
+  * @retval None
+  */
+
+
 void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan1)
 {
   //printf("Recieved CANBUS message...\r\n");
 	if (HAL_CAN_GetRxMessage(hcan1, CAN_RX_FIFO0, &RxHeader, canRX) != HAL_OK)
   {
-    //printf("CAN Message Read Failed. HAL ERROR... \r\n");
+    printf("CAN Message Read Failed. HAL ERROR... \r\n");
+    return;
   }
   else
   {
@@ -262,12 +300,24 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan1)
       printf("Message ID:\t%#lx\r\n",RxHeader.ExtId);
 
       if(RxHeader.ExtId == 0x0CF11E05){
-        printRPM(canRX[0], canRX[1]);
+        uint16_t RPM=(canRX[1] << 8) | canRX[0];
+        uint16_t Current=(canRX[3] << 8) | canRX[2];
+        uint16_t Voltage = (canRX[5] << 8) | canRX[4];
+
+        printf("R  P  M = %u rpm\r\n", RPM);
+        printf("Current = %.1f V\r\n",Current/10.0f);
+        printf("Voltage = %.1f A\r\n", Voltage/10.0f);
+        
+        for(uint8_t i=0;i<16;i++){
+          if(((canRX[7] << 8) | canRX[6]) &(1<<i)){
+            printf("%s\r\n", error_messages[i]);
+          }
+        }
       }
     }
     else
     {
-      //printf("ERROR: Unknown IDE type\r\n");
+      printf("ERROR: Unknown IDE type\r\n");
       return;
     }
 
@@ -281,11 +331,7 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan1)
   } 
 
 }
-void printRPM(uint8_t LSB, uint8_t MSB){
-  int RPM; 
-  RPM = MSB * 256 + LSB; 
-  printf("RPM: %d\n", RPM); 
-}
+
 
 
 /* USER CODE END 4 */
