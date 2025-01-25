@@ -275,7 +275,7 @@ void send_uart_message(char *message) {
   * @retval None
   */
 
-
+/*
 void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan1)
 {
   //printf("Recieved CANBUS message...\r\n");
@@ -332,7 +332,101 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan1)
   } 
 
 }
+*/
+void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan1)
+{
+  //printf("Recieved CANBUS message...\r\n");
+    if (HAL_CAN_GetRxMessage(hcan1, CAN_RX_FIFO0, &RxHeader, canRX) != HAL_OK)
+    {
+        printf("CAN Message Read Failed. HAL ERROR... \r\n");
+        return;
+    }
+    else
+    {
+        HAL_GPIO_TogglePin(USER_LED_GPIO_Port, USER_LED_Pin);
+        if (RxHeader.IDE == CAN_ID_STD)
+        {
+            printf("Message has standard ID type...\r\n");
+            printf("Message ID:\t%#lx\r\n", RxHeader.StdId);
+        }
+        else if (RxHeader.IDE == CAN_ID_EXT)
+        {
+            printf("Message has extended ID type...\r\n");
+            printf("Message ID:\t%#lx\r\n", RxHeader.ExtId);
 
+          
+            if (RxHeader.ExtId == 0x0CF11E05)
+            {
+                uint16_t RPM = (canRX[1] << 8) | canRX[0];
+                uint16_t Current = (canRX[3] << 8) | canRX[2];
+                uint16_t Voltage = (canRX[5] << 8) | canRX[4];
+
+                printf("R  P  M = %u rpm\r\n", RPM);
+                printf("Current = %.1f A\r\n", Current / 10.0f);
+                printf("Voltage = %.1f V\r\n", Voltage / 10.0f);
+
+                for (uint8_t i = 0; i < 16; i++)
+                {
+                    if (((canRX[7] << 8) | canRX[6]) & (1 << i))
+                    {
+                        printf("%s\r\n", error_messages[i]);
+                    }
+                }
+            }
+          
+            else if (RxHeader.ExtId == 0x0CF11F05)
+            {
+                
+                uint8_t throttle_signal = canRX[0];
+                int8_t controller_temp = canRX[1] - 40; 
+                int8_t motor_temp = canRX[2] - 30; 
+                printf("Throttle Signal: %.2f V\r\n", throttle_signal * 5.0f / 255);
+                printf("Controller Temperature: %d ℃\r\n", controller_temp);
+                printf("Motor Temperature: %d ℃\r\n", motor_temp);
+
+               
+                if (canRX[4] & 0x01)
+                    printf("Controller Command: Forward\r\n");
+                else if (canRX[4] & 0x02)
+                    printf("Controller Command: Backward\r\n");
+                else if (canRX[4] & 0x03)
+                    printf("Controller Command: Reserved\r\n");
+                else printf("Controller Command: Neutral\r\n");
+
+                if (((canRX[4] >> 2) & 0x03 )== 0x00)
+                    printf("Feedback: Stationary\r\n");
+                else if (((canRX[4] >> 2) & 0x03 ) == 0x01)
+                    printf("Feedback: Forward\r\n");
+                else if (((canRX[4] >> 2) & 0x03 ) == 0x02)
+                    printf("Feedback: Backward\r\n");
+                else
+                    printf("Feedback: Reserved\r\n");
+
+                printf("Switch Status:\r\n");
+                printf("  Boost: %s\r\n", (canRX[5] & 0x80) ? "ON" : "OFF");
+                printf("  Foot Switch: %s\r\n", (canRX[5] & 0x40) ? "ON" : "OFF");
+                printf("  Forward Switch: %s\r\n", (canRX[5] & 0x20) ? "ON" : "OFF");
+                printf("  Backward Switch: %s\r\n", (canRX[5] & 0x10) ? "ON" : "OFF");
+                printf("  12V Brake Switch: %s\r\n", (canRX[5] & 0x08) ? "ON" : "OFF");
+                printf("  Hall C: %s\r\n", (canRX[5] & 0x04) ? "ON" : "OFF");
+                printf("  Hall B: %s\r\n", (canRX[5] & 0x02) ? "ON" : "OFF");
+                printf("  Hall A: %s\r\n", (canRX[5] & 0x01) ? "ON" : "OFF");
+            }
+        }
+        else
+        {
+            printf("ERROR: Unknown IDE type\r\n");
+            return;
+        }
+
+        // 데이터 출력
+        printf("Message length is %ld byte(s)\r\n", RxHeader.DLC);
+        for (uint8_t i = 0; i < 8; i++)
+        {
+            printf("Byte %d: 0x%02X\r\n", i, canRX[i]);
+        }
+    }
+}
 
 
 /* USER CODE END 4 */
