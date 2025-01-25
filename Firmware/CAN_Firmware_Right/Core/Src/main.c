@@ -288,6 +288,7 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan1)
   {
 
     // Get header info...
+    HAL_GPIO_TogglePin(USER_LED_GPIO_Port, USER_LED_Pin);
     if (RxHeader.IDE == CAN_ID_STD)
     {
       printf("Message has standard ID type...\r\n");
@@ -310,7 +311,7 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan1)
         
         for(uint8_t i=0;i<16;i++){
           if(((canRX[7] << 8) | canRX[6]) &(1<<i)){
-            printf("%s\r\n", error_messages[i]);
+            //printf("%s\r\n", error_messages[i]);
           }
         }
       }
