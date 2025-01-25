@@ -59,7 +59,7 @@ CAN_FilterTypeDef canfil; //CAN Bus Filter
 uint32_t canMailbox; //CAN Bus Mail box variable
 
 uint8_t canRX[8] = {0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0};  //CAN Bus Receive Buffer
-
+uint8_t uart_rx_data;
 
 
 
@@ -129,21 +129,19 @@ int main(void)
   canfil.FilterActivation = ENABLE;
   canfil.SlaveStartFilterBank = 14;
 
-  TxHeader.IDE = CAN_ID_EXT;
-  TxHeader.ExtId = 0x0CF11E05;
+  TxHeader.IDE = CAN_ID_STD;
+  TxHeader.StdId = 0x000;
   TxHeader.RTR = CAN_RTR_DATA;
-  TxHeader.DLC = 2;
+  TxHeader.DLC = 8;
 
-  TxData[0] = 0x9;  
-  TxData[1] = 0x10; 
-  TxData[2] = 0x11; 
-  TxData[3] = 0x04; 
-  TxData[4] = 0x05; 
-  TxData[5] = 0x06; 
-  TxData[6] = 0x07; 
-  TxData[7] = 0x11; 
-
-  //char msg[] = "Hello, UART!\r\n";
+  TxData[0] = 0x00;  
+  TxData[1] = 0x00; 
+  TxData[2] = 0x00; 
+  TxData[3] = 0x00; 
+  TxData[4] = 0x00; 
+  TxData[5] = 0x00; 
+  TxData[6] = 0x00; 
+  TxData[7] = 0x00; 
 
   HAL_CAN_ConfigFilter(&hcan,&canfil);
   HAL_CAN_Start(&hcan);
@@ -154,6 +152,8 @@ int main(void)
 	  Error_Handler();
   }
 
+  int toggle = 0; 
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -162,10 +162,11 @@ int main(void)
   {
     HAL_Delay(500);
     HAL_GPIO_TogglePin(USER_LED_GPIO_Port, USER_LED_Pin);
-    
-    // uint32_t free_mailboxes = HAL_CAN_GetTxMailboxesFreeLevel(&hcan);
-    // printf("Free Mailboxes: %lu\n", free_mailboxes);
-    
+
+    // HAL_UART_Receive_IT(&huart1, &uart_rx_data, 1);
+    // receive_transmitCAN(&uart_rx_data);
+    toggle_transmitCAN(toggle);
+    toggle ^= 1; 
     if (HAL_CAN_AddTxMessage(&hcan, &TxHeader, TxData, &TxMailbox) != HAL_OK)
     {
       //Error_Handler ();
@@ -249,6 +250,7 @@ void send_uart_message(char *message) {
     HAL_UART_Transmit(&huart1, (uint8_t *)message, strlen(message), HAL_MAX_DELAY);
 }
 
+
 /**
   * @brief  Reads CANBUS message from FIFO buffer 
   * @author Peter Woolsey
@@ -300,6 +302,76 @@ void printRPM(uint8_t LSB, uint8_t MSB){
   int RPM; 
   RPM = MSB * 256 + LSB; 
   printf("RPM: %d", RPM); 
+}
+
+void toggle_transmitCAN(uint8_t toggle){
+
+  if(toggle)
+  {
+    TxHeader.IDE = CAN_ID_STD;
+    TxHeader.StdId = 0x6B1;
+    TxHeader.RTR = CAN_RTR_DATA;
+    TxHeader.DLC = 8;
+
+    TxData[0] = 0x9;  
+    TxData[1] = 0x10; 
+    TxData[2] = 0x90; 
+    TxData[3] = 0x01; 
+    TxData[4] = 0x05; 
+    TxData[5] = 0x06; 
+    TxData[6] = 0x07; 
+    TxData[7] = 0x11; 
+  }else{
+    TxHeader.IDE = CAN_ID_EXT;
+    TxHeader.ExtId = 0x0CF11E05;
+    TxHeader.RTR = CAN_RTR_DATA;
+    TxHeader.DLC = 8;
+
+    TxData[0] = 0x9;  
+    TxData[1] = 0x10; 
+    TxData[2] = 0x90; 
+    TxData[3] = 0x01; 
+    TxData[4] = 0x05; 
+    TxData[5] = 0x06; 
+    TxData[6] = 0x07; 
+    TxData[7] = 0x11; 
+  }
+
+}
+
+void receive_transmitCAN(char target){
+
+  if(target == 'b')
+  {
+    TxHeader.IDE = CAN_ID_STD;
+    TxHeader.StdId = 0x6B1;
+    TxHeader.RTR = CAN_RTR_DATA;
+    TxHeader.DLC = 8;
+
+    TxData[0] = 0x9;  
+    TxData[1] = 0x10; 
+    TxData[2] = 0x90; 
+    TxData[3] = 0x01; 
+    TxData[4] = 0x05; 
+    TxData[5] = 0x06; 
+    TxData[6] = 0x07; 
+    TxData[7] = 0x11; 
+  }else if (target == 'm'){
+    TxHeader.IDE = CAN_ID_EXT;
+    TxHeader.ExtId = 0x0CF11E05;
+    TxHeader.RTR = CAN_RTR_DATA;
+    TxHeader.DLC = 8;
+
+    TxData[0] = 0x9;  
+    TxData[1] = 0x10; 
+    TxData[2] = 0x90; 
+    TxData[3] = 0x01; 
+    TxData[4] = 0x05; 
+    TxData[5] = 0x06; 
+    TxData[6] = 0x07; 
+    TxData[7] = 0x11; 
+  }
+
 }
 
 /* USER CODE END 4 */
