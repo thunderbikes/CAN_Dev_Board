@@ -419,7 +419,7 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan1)
             return;
         }
 
-        // 데이터 출력
+    
         printf("Message length is %ld byte(s)\r\n", RxHeader.DLC);
         for (uint8_t i = 0; i < 8; i++)
         {
