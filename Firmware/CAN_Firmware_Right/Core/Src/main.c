@@ -171,7 +171,6 @@ int main(void)
 
    
 
-  //char msg[] = "Hello, UART!\r\n";
 
   HAL_CAN_ConfigFilter(&hcan,&canfil);
   HAL_CAN_Start(&hcan);
@@ -189,17 +188,6 @@ int main(void)
   while (1)
   {
     
-    
-    // uint32_t free_mailboxes = HAL_CAN_GetTxMailboxesFreeLevel(&hcan);
-    // printf("Free Mailboxes: %lu\n", free_mailboxes);
-    
-    // if (HAL_CAN_GetRxMessage(&hcan, CAN_RX_FIFO0, &RxHeader, canRX) == HAL_OK) {
-    //   printf("received message\r");
-    //   printf("Message length is %ld byte(s)\r\n", RxHeader.DLC);
-    //   for (uint8_t i = 0; i < 8; i++) {
-    //     printf("Byte %d: 0x%02X\r\n", i, canRX[i]);
-    //   }
-    // }
 
     /* USER CODE END WHILE */
 
@@ -277,7 +265,6 @@ void send_uart_message(char *message) {
   */
 void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan1)
 {
-  //printf("Recieved CANBUS message...\r\n");
     if (HAL_CAN_GetRxMessage(hcan1, CAN_RX_FIFO0, &RxHeader, canRX) != HAL_OK)
     {
         printf("CAN Message Read Failed. HAL ERROR... \r\n");
@@ -290,13 +277,39 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan1)
         {
             printf("Message has standard ID type...\r\n");
             printf("Message ID:\t%#lx\r\n", RxHeader.StdId);
+
+            if(RxHeader.StdId == 0x6B0){ // BMS
+              uint16_t pack_current     = (canRX[1] << 8) | canRX[0];
+              uint16_t pack_voltage     = (canRX[3] << 8) | canRX[2];
+              uint8_t pack_soc          = canRX[4];
+              uint8_t pack_relay_state  = canRX[5];
+
+              printf("Pack Current: %d\r\n", pack_current);
+              printf("Pack Voltage: %d\r\n", pack_voltage);
+              printf("Pack SoC: %d\r\n", pack_soc);
+              printf("Pack Relay Status: %d\r\n", pack_relay_state);
+
+            }
+            else if(RxHeader.StdId == 0x6B1){ // BMS
+              uint32_t pack_DCL = (canRX[3]<<24) | (canRX[2]<<16) | (canRX[1]<<8) | canRX[0];
+              uint8_t high_temp_derating = canRX[4];
+              uint8_t low_temp_derating   = canRX[5];
+
+              printf("Pack DCL: %d\r\n", pack_DCL);
+              printf("High Temp Derating: %d\r\n", high_temp_derating);
+              printf("low_temp_derating: %d\r\n", low_temp_derating);
+            }
+            else
+            {
+            printf("ERROR: Unknown IDE type\r\n");
+            return;
+            }
         }
         else if (RxHeader.IDE == CAN_ID_EXT)
         {
             printf("Message has extended ID type...\r\n");
             printf("Message ID:\t%#lx\r\n", RxHeader.ExtId);
 
-          
             if (RxHeader.ExtId == 0x0CF11E05)
             {
                 uint16_t RPM = (canRX[1] << 8) | canRX[0];
@@ -306,8 +319,6 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan1)
                 printf("R  P  M = %u rpm\r\n", RPM);
                 printf("Current = %u A\r\n", Current/ 10);
                 printf("Voltage = %u V\r\n", Voltage / 10);
-
-                // Fix this error code 
 
                 for (uint8_t i = 0; i < 16; i++)
                 {
