@@ -59,6 +59,24 @@ uint32_t canMailbox; //CAN Bus Mail box variable
 
 uint8_t canRX[8] = {0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0};  //CAN Bus Receive Buffer
 
+const char *error_messages[16] = {
+    "ERR0: Identification error.",
+    "ERR1: Over voltage.",
+    "ERR2: Low voltage.",
+    "ERR3: Reserved.",
+    "ERR4: Stall.",
+    "ERR5: Internal volts fault.",
+    "ERR6: Over temperature.",
+    "ERR7: Throttle error at power-up.",
+    "ERR8: Reserved.",
+    "ERR9: Internal reset.",
+    "ERR10: Hall throttle open or short-circuit.",
+    "ERR11: Angle sensor error.",
+    "ERR12: Reserved.",
+    "ERR13: Reserved.",
+    "ERR14: Motor over-temperature.",
+    "ERR15: Hall galvanometer sensor error."
+};
 
 
 
@@ -151,24 +169,7 @@ int main(void)
   * @retval None
   */
 
-   const char *error_messages[16] = {
-    "ERR0: Identification error.",
-    "ERR1: Over voltage.",
-    "ERR2: Low voltage.",
-    "ERR3: Reserved.",
-    "ERR4: Stall.",
-    "ERR5: Internal volts fault.",
-    "ERR6: Over temperature.",
-    "ERR7: Throttle error at power-up.",
-    "ERR8: Reserved.",
-    "ERR9: Internal reset.",
-    "ERR10: Hall throttle open or short-circuit.",
-    "ERR11: Angle sensor error.",
-    "ERR12: Reserved.",
-    "ERR13: Reserved.",
-    "ERR14: Motor over-temperature.",
-    "ERR15: Hall galvanometer sensor error."
-};
+   
 
   //char msg[] = "Hello, UART!\r\n";
 
@@ -274,65 +275,6 @@ void send_uart_message(char *message) {
   * @author Dean
   * @retval None
   */
-
-/*
-void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan1)
-{
-  //printf("Recieved CANBUS message...\r\n");
-	if (HAL_CAN_GetRxMessage(hcan1, CAN_RX_FIFO0, &RxHeader, canRX) != HAL_OK)
-  {
-    printf("CAN Message Read Failed. HAL ERROR... \r\n");
-    return;
-  }
-  else
-  {
-
-    // Get header info...
-    HAL_GPIO_TogglePin(USER_LED_GPIO_Port, USER_LED_Pin);
-    if (RxHeader.IDE == CAN_ID_STD)
-    {
-      printf("Message has standard ID type...\r\n");
-      printf("Message ID:\t%#lx\r\n",RxHeader.StdId);
-
-    }
-    else if (RxHeader.IDE == CAN_ID_EXT)
-    {
-      printf("Message has extended ID type...\r\n");
-      printf("Message ID:\t%#lx\r\n",RxHeader.ExtId);
-
-      if(RxHeader.ExtId == 0x0CF11E05){
-        uint16_t RPM=(canRX[1] << 8) | canRX[0];
-        uint16_t Current=(canRX[3] << 8) | canRX[2];
-        uint16_t Voltage = (canRX[5] << 8) | canRX[4];
-
-        printf("R  P  M = %u rpm\r\n", RPM);
-        printf("Current = %.1f V\r\n",Current/10.0f);
-        printf("Voltage = %.1f A\r\n", Voltage/10.0f);
-        
-        for(uint8_t i=0;i<16;i++){
-          if(((canRX[7] << 8) | canRX[6]) &(1<<i)){
-            //printf("%s\r\n", error_messages[i]);
-          }
-        }
-      }
-    }
-    else
-    {
-      printf("ERROR: Unknown IDE type\r\n");
-      return;
-    }
-
-    // Get data... 
-    // If len(data) < 8 (less than 64 bytes) does the data fill from the front or the back of the array?
-    printf("Message length is %ld byte(s)\n", RxHeader.DLC);
-    for (uint8_t i = 0; i < 8; i++) {
-        printf("Byte %d: 0x%02X\r\n", i, canRX[i]);
-    }
-
-  } 
-
-}
-*/
 void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan1)
 {
   //printf("Recieved CANBUS message...\r\n");
@@ -362,8 +304,10 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan1)
                 uint16_t Voltage = (canRX[5] << 8) | canRX[4];
 
                 printf("R  P  M = %u rpm\r\n", RPM);
-                printf("Current = %.1f A\r\n", Current / 10.0f);
-                printf("Voltage = %.1f V\r\n", Voltage / 10.0f);
+                printf("Current = %u A\r\n", Current/ 10);
+                printf("Voltage = %u V\r\n", Voltage / 10);
+
+                // Fix this error code 
 
                 for (uint8_t i = 0; i < 16; i++)
                 {
@@ -380,7 +324,7 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan1)
                 uint8_t throttle_signal = canRX[0];
                 int8_t controller_temp = canRX[1] - 40; 
                 int8_t motor_temp = canRX[2] - 30; 
-                printf("Throttle Signal: %.2f V\r\n", throttle_signal * 5.0f / 255);
+                printf("Throttle Signal: %d V\r\n", throttle_signal);
                 printf("Controller Temperature: %d ℃\r\n", controller_temp);
                 printf("Motor Temperature: %d ℃\r\n", motor_temp);
 
@@ -442,7 +386,6 @@ void Error_Handler(void)
   __disable_irq();
   while (1)
   {
-    //printf("bruh");
     HAL_GPIO_TogglePin(USER_LED_GPIO_Port, USER_LED_Pin);
     HAL_Delay(200);
   }
