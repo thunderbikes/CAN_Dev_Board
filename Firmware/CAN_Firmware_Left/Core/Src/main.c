@@ -59,7 +59,7 @@ CAN_FilterTypeDef canfil; //CAN Bus Filter
 uint32_t canMailbox; //CAN Bus Mail box variable
 
 uint8_t canRX[8] = {0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0};  //CAN Bus Receive Buffer
-uint8_t uart_rx_data;
+uint8_t buffer[1];
 
 
 
@@ -154,35 +154,32 @@ int main(void)
 
   int toggle = 0; 
 
+
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-    HAL_Delay(500);
-    HAL_GPIO_TogglePin(USER_LED_GPIO_Port, USER_LED_Pin);
+    
 
-    // HAL_UART_Receive_IT(&huart1, &uart_rx_data, 1);
-    // receive_transmitCAN(&uart_rx_data);
-    toggle_transmitCAN(toggle);
-    toggle ^= 1; 
-    if (HAL_CAN_AddTxMessage(&hcan, &TxHeader, TxData, &TxMailbox) != HAL_OK)
-    {
-      //Error_Handler ();
-    }
+    if (HAL_UART_Receive(&huart1, buffer, 1, 0xFFFF) == HAL_OK) {
+            // If data is received, trigger action
 
-    // if(HAL_CAN_IsTxMessagePending(&hcan, &canMailbox) != 0){
-    //   printf("Full mailbox\r\n");
-    // }
-    // if (HAL_CAN_GetRxMessage(&hcan, CAN_RX_FIFO0, &RxHeader, canRX) == HAL_OK) {
-    //   printf("received message\r");
-    //   printf("Message length is %ld byte(s)\r\n", RxHeader.DLC);
-    //   for (uint8_t i = 0; i < 8; i++) {
-    //     printf("Byte %d: 0x%02X\r\n", i, canRX[i]);
-    //   }
-    // }
+            HAL_GPIO_TogglePin(USER_LED_GPIO_Port, USER_LED_Pin);
+            receive_transmitCAN(buffer);
+            //HAL_UART_Transmit(&huart1, buffer, 1, 0xFFFF);
+            if (HAL_CAN_AddTxMessage(&hcan, &TxHeader, TxData, &TxMailbox) != HAL_OK)
+              {
+                //Error_Handler ();
+              }
+            
+        }
 
+    // toggle_transmitCAN(toggle);
+    // toggle ^= 1; 
+    
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -341,7 +338,7 @@ void toggle_transmitCAN(uint8_t toggle){
 
 void receive_transmitCAN(char target){
 
-  if(target == 'b')
+  if(target == 0)
   {
     TxHeader.IDE = CAN_ID_STD;
     TxHeader.StdId = 0x6B1;
@@ -356,7 +353,8 @@ void receive_transmitCAN(char target){
     TxData[5] = 0x06; 
     TxData[6] = 0x07; 
     TxData[7] = 0x11; 
-  }else if (target == 'm'){
+  }
+  else if (target == 1){
     TxHeader.IDE = CAN_ID_EXT;
     TxHeader.ExtId = 0x0CF11E05;
     TxHeader.RTR = CAN_RTR_DATA;
