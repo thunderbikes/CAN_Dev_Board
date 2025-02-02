@@ -128,7 +128,7 @@ int main(void)
   canfil.SlaveStartFilterBank = 14;
 
   TxHeader.IDE = CAN_ID_STD; // Standard ID. CAN_ID_EXT is extended ID. 
-  TxHeader.StdId = 0x000;
+  TxHeader.StdId = 0x111;
   TxHeader.RTR = CAN_RTR_DATA;
   TxHeader.DLC = 8;          // Data frame size. Max 8. 
 
@@ -166,7 +166,7 @@ int main(void)
             // If data is received, trigger action
 
             HAL_GPIO_TogglePin(USER_LED_GPIO_Port, USER_LED_Pin);
-            receive_transmitCAN(buffer);
+            receive_transmitCAN(buffer[0]);
             //HAL_UART_Transmit(&huart1, buffer, 1, 0xFFFF);
             if (HAL_CAN_AddTxMessage(&hcan, &TxHeader, TxData, &TxMailbox) != HAL_OK)
               {
@@ -246,97 +246,16 @@ void send_uart_message(char *message) {
 }
 
 
-/**
-  * @brief  Reads CANBUS message from FIFO buffer 
-  * @author Peter Woolsey
-  * @retval None
-  */
-void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan1)
-{
-  //printf("Recieved CANBUS message...\r\n");
-	if (HAL_CAN_GetRxMessage(hcan1, CAN_RX_FIFO0, &RxHeader, canRX) != HAL_OK)
-  {
-    //printf("CAN Message Read Failed. HAL ERROR... \r\n");
-  }
-  else
-  {
 
-    // Get header info...
-    if (RxHeader.IDE == CAN_ID_STD)
-    {
-      printf("Message has standard ID type...\r\n");
-      printf("Message ID:\t%#lx\r\n",RxHeader.StdId);
-
-    }
-    else if (RxHeader.IDE == CAN_ID_EXT)
-    {
-      printf("Message has extended ID type...\r\n");
-      printf("Message ID:\t%#lx\r\n",RxHeader.ExtId);
-
-      if(RxHeader.ExtId == 0x0CF11E05){
-        printRPM(canRX[0], canRX[1]);
-      }
-    }
-    else
-    {
-      //printf("ERROR: Unknown IDE type\r\n");
-      return;
-    }
-
-    // Get data... 
-    // If len(data) < 8 (less than 64 bytes) does the data fill from the front or the back of the array?
-    printf("Message length is %ld byte(s)\n", RxHeader.DLC);
-    for (uint8_t i = 0; i < 8; i++) {
-        printf("Byte %d: 0x%02X\r\n", i, canRX[i]);
-    }
-
-  } 
-
-}
 void printRPM(uint8_t LSB, uint8_t MSB){
   int RPM; 
   RPM = MSB * 256 + LSB; 
   printf("RPM: %d", RPM); 
 }
 
-void toggle_transmitCAN(uint8_t toggle){
-
-  if(toggle)
-  {
-    TxHeader.IDE = CAN_ID_STD;
-    TxHeader.StdId = 0x6B1;
-    TxHeader.RTR = CAN_RTR_DATA;
-    TxHeader.DLC = 8;
-
-    TxData[0] = 0x9;  
-    TxData[1] = 0x10; 
-    TxData[2] = 0x90; 
-    TxData[3] = 0x01; 
-    TxData[4] = 0x05; 
-    TxData[5] = 0x06; 
-    TxData[6] = 0x07; 
-    TxData[7] = 0x11; 
-  }else{
-    TxHeader.IDE = CAN_ID_EXT;
-    TxHeader.ExtId = 0x0CF11E05;
-    TxHeader.RTR = CAN_RTR_DATA;
-    TxHeader.DLC = 8;
-
-    TxData[0] = 0x9;  
-    TxData[1] = 0x10; 
-    TxData[2] = 0x90; 
-    TxData[3] = 0x01; 
-    TxData[4] = 0x05; 
-    TxData[5] = 0x06; 
-    TxData[6] = 0x07; 
-    TxData[7] = 0x11; 
-  }
-
-}
-
 void receive_transmitCAN(char target){
 
-  if(target == 0)
+  if(target == '0')
   {
     TxHeader.IDE = CAN_ID_STD;
     TxHeader.StdId = 0x6B1;
@@ -352,7 +271,7 @@ void receive_transmitCAN(char target){
     TxData[6] = 0x07; 
     TxData[7] = 0x11; 
   }
-  else if (target == 1){
+  else if (target == '1'){
     TxHeader.IDE = CAN_ID_EXT;
     TxHeader.ExtId = 0x0CF11E05;
     TxHeader.RTR = CAN_RTR_DATA;
