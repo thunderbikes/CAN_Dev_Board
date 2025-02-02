@@ -115,8 +115,6 @@ int main(void)
   MX_USB_PCD_Init();
   /* USER CODE BEGIN 2 */
 
-  CAN_FilterTypeDef canfilterconfig;
-
 
   canfil.FilterBank = 0;
   canfil.FilterMode = CAN_FILTERMODE_IDMASK;
@@ -129,10 +127,10 @@ int main(void)
   canfil.FilterActivation = ENABLE;
   canfil.SlaveStartFilterBank = 14;
 
-  TxHeader.IDE = CAN_ID_STD;
+  TxHeader.IDE = CAN_ID_STD; // Standard ID. CAN_ID_EXT is extended ID. 
   TxHeader.StdId = 0x000;
   TxHeader.RTR = CAN_RTR_DATA;
-  TxHeader.DLC = 8;
+  TxHeader.DLC = 8;          // Data frame size. Max 8. 
 
   TxData[0] = 0x00;  
   TxData[1] = 0x00; 
@@ -172,7 +170,7 @@ int main(void)
             //HAL_UART_Transmit(&huart1, buffer, 1, 0xFFFF);
             if (HAL_CAN_AddTxMessage(&hcan, &TxHeader, TxData, &TxMailbox) != HAL_OK)
               {
-                //Error_Handler ();
+                Error_Handler ();
               }
             
         }
