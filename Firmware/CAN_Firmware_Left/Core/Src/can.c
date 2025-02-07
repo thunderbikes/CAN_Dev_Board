@@ -89,6 +89,8 @@ void HAL_CAN_MspInit(CAN_HandleTypeDef* canHandle)
     __HAL_AFIO_REMAP_CAN1_2();
 
     /* CAN1 interrupt Init */
+    HAL_NVIC_SetPriority(USB_HP_CAN1_TX_IRQn, 0, 0);
+    HAL_NVIC_EnableIRQ(USB_HP_CAN1_TX_IRQn);
     HAL_NVIC_SetPriority(USB_LP_CAN1_RX0_IRQn, 0, 0);
     HAL_NVIC_EnableIRQ(USB_LP_CAN1_RX0_IRQn);
   /* USER CODE BEGIN CAN1_MspInit 1 */
@@ -115,6 +117,14 @@ void HAL_CAN_MspDeInit(CAN_HandleTypeDef* canHandle)
     HAL_GPIO_DeInit(GPIOB, GPIO_PIN_8|GPIO_PIN_9);
 
     /* CAN1 interrupt Deinit */
+  /* USER CODE BEGIN CAN1:USB_HP_CAN1_TX_IRQn disable */
+    /**
+    * Uncomment the line below to disable the "USB_HP_CAN1_TX_IRQn" interrupt
+    * Be aware, disabling shared interrupt may affect other IPs
+    */
+    /* HAL_NVIC_DisableIRQ(USB_HP_CAN1_TX_IRQn); */
+  /* USER CODE END CAN1:USB_HP_CAN1_TX_IRQn disable */
+
   /* USER CODE BEGIN CAN1:USB_LP_CAN1_RX0_IRQn disable */
     /**
     * Uncomment the line below to disable the "USB_LP_CAN1_RX0_IRQn" interrupt
