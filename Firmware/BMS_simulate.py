@@ -1,11 +1,10 @@
 import serial
-import struct
 import threading
 import time
 import tkinter as tk
 
 # Configure the serial port
-ser = serial.Serial('/dev/tty.usbmodem1101', 115200)  # Update port and baud rate
+ser = serial.Serial('/dev/tty.usbmodem2101', 115200)  # Update port and baud rate
 if ser.is_open:
     print("Port is open!")
 else:
@@ -14,33 +13,37 @@ else:
 # Global variable for shared value
 value_lock = threading.Lock()  # Lock for thread-safe access to the value
 value = 0
-delay = 0.1 # 100ms 
+delay = 0.1  # 100ms
 
 # Function to send data
-def send_data():
+def send_data(log_widget):
     global value
     while True:
         with value_lock:
             data = int(value)
-        message = "set "+str(int(data)) + '\r' 
+        message = "set " + str(int(data)) + '\r'
         ser.write(message.encode('utf-8'))
-        print(f"Sent: set {data}")
+        if data < 10:
+            log_widget.insert(tk.END, f"Sent: set {data}\n") 
+        else:
+            log_widget.insert(tk.END, f"Sent: set {data//10}\n") # Funny work around. Works for now. 
+        log_widget.see(tk.END)  # Auto-scroll to the bottom
         time.sleep(delay)  # Delay to avoid spamming the serial port
-            
-
 
 # Function to receive data
-def receive_data():
+def receive_data(log_widget):
     while True:
         if ser.in_waiting > 0:  # Check if there is data available
             data = ser.readline()  # Read one line of data
-            print(data.decode('utf-8').strip())  # Print the received data, decoding it to string and stripping any extra whitespace
+            decoded_data = data.decode('utf-8').strip()
+            log_widget.insert(tk.END, f"Received: {decoded_data}\n")
+            log_widget.see(tk.END)  # Auto-scroll to the bottom
 
 # Function to update the value from the slider
 def update_value(new_value):
     global value
     new_value = float(new_value)  # Ensure the value is a float
-    
+
     # Check if the value is 10 or greater
     if new_value >= 10:
         new_value *= 10  # Multiply by 10 if the value is 10 or greater
@@ -51,7 +54,7 @@ def update_value(new_value):
 # Create Tkinter GUI
 def create_gui():
     root = tk.Tk()
-    root.title("Serial Value Slider")
+    root.title("BMS Simulation")
 
     # Make the window always on top
     root.attributes("-topmost", 1)
@@ -59,9 +62,9 @@ def create_gui():
     # Raise the window to the top of the stack
     root.lift()
 
-    tk.Label(root, text="Select Value").pack(pady=10)
+    tk.Label(root, text="Select BMS Voltage Value").pack(pady=10)
 
-    # Create a larger slider
+    # Create a slider
     slider = tk.Scale(
         root,
         from_=0,
@@ -76,21 +79,27 @@ def create_gui():
     slider.set(value)  # Set default value
     slider.pack(pady=10)
 
+    # Create text boxes for send and receive logs
+    send_label = tk.Label(root, text="Send Log")
+    send_label.pack(pady=5)
+
+    send_log = tk.Text(root, height=20, width=50, wrap=tk.WORD)
+    send_log.pack(pady=5)
+
+    receive_label = tk.Label(root, text="Receive Log")
+    receive_label.pack(pady=5)
+
+    receive_log = tk.Text(root, height=20, width=50, wrap=tk.WORD)
+    receive_log.pack(pady=5)
+
+    # Start threads with logging widgets
+    send_thread = threading.Thread(target=send_data, args=(send_log,), daemon=True)
+    receive_thread = threading.Thread(target=receive_data, args=(receive_log,), daemon=True)
+
+    send_thread.start()
+    receive_thread.start()
+
     root.mainloop()
-
-# Create and start threads
-send_thread = threading.Thread(target=send_data, daemon=True)
-receive_thread = threading.Thread(target=receive_data, daemon=True)
-
-send_thread.start()
-receive_thread.start()
 
 # Start the Tkinter GUI in the main thread
 create_gui()
-
-# Keep the program running
-try:
-    while True:
-        time.sleep(1)
-except KeyboardInterrupt:
-    print("\nExiting...")
