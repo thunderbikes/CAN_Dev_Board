@@ -312,6 +312,10 @@ void CANSend_BMS(int target){
     TxData[6] = 0x07; 
     TxData[7] = 0x11; 
   } 
+  if (HAL_CAN_AddTxMessage(&hcan, &TxHeader, TxData, &TxMailbox) != HAL_OK)
+  {
+    Error_Handler ();
+  }
 
 }
 
