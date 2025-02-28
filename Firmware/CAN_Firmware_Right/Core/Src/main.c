@@ -180,6 +180,8 @@ int main(void)
   {
 	  Error_Handler();
   }
+  HAL_GPIO_TogglePin(USER_LED_GPIO_Port, USER_LED_Pin);
+
 
   /* USER CODE END 2 */
 
@@ -260,7 +262,7 @@ void send_uart_message(char *message) {
 
 /**
   * @brief Print CANBUS Error messages 
-  * @author Dean
+  * @author Dean and Alex
   * @retval None
   */
 void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan1)

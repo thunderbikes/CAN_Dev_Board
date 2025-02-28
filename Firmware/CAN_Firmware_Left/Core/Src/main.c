@@ -145,20 +145,6 @@ int main(void)
   canfil.FilterActivation = ENABLE;
   canfil.SlaveStartFilterBank = 14;
 
-  TxHeader.IDE = CAN_ID_STD; // Standard ID. CAN_ID_EXT is extended ID. 
-  TxHeader.StdId = 0x111;
-  TxHeader.RTR = CAN_RTR_DATA;
-  TxHeader.DLC = 8;          // Data frame size. Max 8. 
-
-  TxData[0] = 0x00;  
-  TxData[1] = 0x00; 
-  TxData[2] = 0x00; 
-  TxData[3] = 0x00; 
-  TxData[4] = 0x00; 
-  TxData[5] = 0x00; 
-  TxData[6] = 0x00; 
-  TxData[7] = 0x00; 
-
   HAL_CAN_ConfigFilter(&hcan,&canfil);
   HAL_CAN_Start(&hcan);
   HAL_CAN_ActivateNotification(&hcan,CAN_IT_RX_FIFO0_MSG_PENDING);
@@ -182,23 +168,6 @@ int main(void)
     
     cli_process(&cli);
 
-
-    // if (HAL_UART_Receive(&huart1, buffer, 1, 0xFFFF) == HAL_OK) {
-    //         // If data is received, trigger action
-
-    //         HAL_GPIO_TogglePin(USER_LED_GPIO_Port, USER_LED_Pin);
-    //         receive_transmitCAN(buffer[0]);
-    //         //HAL_UART_Transmit(&huart1, buffer, 1, 0xFFFF);
-    //         if (HAL_CAN_AddTxMessage(&hcan, &TxHeader, TxData, &TxMailbox) != HAL_OK)
-    //           {
-    //             Error_Handler ();
-    //           }
-            
-    //     }
-
-    // toggle_transmitCAN(toggle);
-    // toggle ^= 1; 
-    
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
