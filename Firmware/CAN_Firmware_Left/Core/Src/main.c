@@ -21,12 +21,15 @@
 #include "can.h"
 #include "i2c.h"
 #include "usart.h"
-#include "usb.h"
 #include "gpio.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include <stdio.h> 
+#include <stdlib.h>
+#include "cli.h"
+#include "stm32f1xx_hal_gpio.h"
+#include <string.h>
 
 /* USER CODE END Includes */
 
@@ -37,6 +40,9 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
+static cli_status_t set_bms(int argc, char **argv);
+void user_uart_println(char *string);
+void CANSend_BMS(int target);
 
 /* USER CODE END PD */
 
@@ -49,7 +55,11 @@
 
 /* USER CODE BEGIN PV */
 
-
+cmd_t cmd_tbl[] = {
+  {.cmd = "set", .func = set_bms},
+};
+cli_t cli;
+uint8_t rx_data[2];
 
 CAN_TxHeaderTypeDef   TxHeader;
 CAN_RxHeaderTypeDef   RxHeader; //CAN Bus Transmit Header
@@ -60,7 +70,7 @@ uint32_t canMailbox; //CAN Bus Mail box variable
 
 uint8_t canRX[8] = {0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0};  //CAN Bus Receive Buffer
 uint8_t buffer[1];
-
+int bms_value = 0; 
 
 
 /* USER CODE END PV */
@@ -112,8 +122,16 @@ int main(void)
   MX_CAN_Init();
   MX_I2C1_Init();
   MX_USART1_UART_Init();
-  MX_USB_PCD_Init();
   /* USER CODE BEGIN 2 */
+
+  // configuring the HAL uart interupt
+  HAL_UART_Receive_IT(&huart1, rx_data, 1);
+
+  cli.println = user_uart_println;
+  cli.cmd_tbl = cmd_tbl;
+  cli.cmd_cnt = sizeof(cmd_tbl) / sizeof(cmd_t);
+  cli.println("VCU (v1.0) Test Suite v0.1\r\n");
+  cli_init(&cli);
 
 
   canfil.FilterBank = 0;
@@ -154,6 +172,7 @@ int main(void)
 
 
 
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -161,19 +180,21 @@ int main(void)
   while (1)
   {
     
+    cli_process(&cli);
 
-    if (HAL_UART_Receive(&huart1, buffer, 1, 0xFFFF) == HAL_OK) {
-            // If data is received, trigger action
 
-            HAL_GPIO_TogglePin(USER_LED_GPIO_Port, USER_LED_Pin);
-            receive_transmitCAN(buffer[0]);
-            //HAL_UART_Transmit(&huart1, buffer, 1, 0xFFFF);
-            if (HAL_CAN_AddTxMessage(&hcan, &TxHeader, TxData, &TxMailbox) != HAL_OK)
-              {
-                Error_Handler ();
-              }
+    // if (HAL_UART_Receive(&huart1, buffer, 1, 0xFFFF) == HAL_OK) {
+    //         // If data is received, trigger action
+
+    //         HAL_GPIO_TogglePin(USER_LED_GPIO_Port, USER_LED_Pin);
+    //         receive_transmitCAN(buffer[0]);
+    //         //HAL_UART_Transmit(&huart1, buffer, 1, 0xFFFF);
+    //         if (HAL_CAN_AddTxMessage(&hcan, &TxHeader, TxData, &TxMailbox) != HAL_OK)
+    //           {
+    //             Error_Handler ();
+    //           }
             
-        }
+    //     }
 
     // toggle_transmitCAN(toggle);
     // toggle ^= 1; 
@@ -193,7 +214,6 @@ void SystemClock_Config(void)
 {
   RCC_OscInitTypeDef RCC_OscInitStruct = {0};
   RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
-  RCC_PeriphCLKInitTypeDef PeriphClkInit = {0};
 
   /** Initializes the RCC Oscillators according to the specified parameters
   * in the RCC_OscInitTypeDef structure.
@@ -223,70 +243,93 @@ void SystemClock_Config(void)
   {
     Error_Handler();
   }
-  PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_USB;
-  PeriphClkInit.UsbClockSelection = RCC_USBCLKSOURCE_PLL_DIV1_5;
-  if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit) != HAL_OK)
-  {
-    Error_Handler();
-  }
 }
 
 /* USER CODE BEGIN 4 */
-PUTCHAR_PROTOTYPE
-{
-  /* Place your implementation of fputc here */
-  /* e.g. write a character to the USART1 and Loop until the end of transmission */
-  HAL_UART_Transmit(&huart1, (uint8_t *)&ch, 1, 0xFFFF);
 
-  return ch;
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
+  HAL_UART_Receive_IT(&huart1, rx_data, 1);
+  cli_put(&cli, rx_data[0]);
+  user_uart_println((char *)rx_data);
 }
 
-void send_uart_message(char *message) {
-    HAL_UART_Transmit(&huart1, (uint8_t *)message, strlen(message), HAL_MAX_DELAY);
+// PUTCHAR_PROTOTYPE
+// {
+//   /* Place your implementation of fputc here */
+//   /* e.g. write a character to the USART1 and Loop until the end of transmission */
+//   HAL_UART_Transmit(&huart1, (uint8_t *)&ch, 1, 0xFFFF);
+
+//   return ch;
+// }
+
+// void send_uart_message(char *message) {
+//     HAL_UART_Transmit(&huart1, (uint8_t *)message, strlen(message), HAL_MAX_DELAY);
+// }
+
+void user_uart_println(char *string) {
+  HAL_UART_Transmit(&huart1, (uint8_t *)string, strlen(string), HAL_MAX_DELAY);
 }
 
 
 
-void printRPM(uint8_t LSB, uint8_t MSB){
-  int RPM; 
-  RPM = MSB * 256 + LSB; 
-  printf("RPM: %d", RPM); 
-}
+// void printRPM(uint8_t LSB, uint8_t MSB){
+//   int RPM; 
+//   RPM = MSB * 256 + LSB; 
+//   printf("RPM: %d", RPM); 
+// }
 
-void receive_transmitCAN(char target){
+// This function assumes the 16 bit votlage is a uint16 in volts
 
-  if(target == '0')
+void CANSend_BMS(int target){
+
+  if(target > 0)
   {
     TxHeader.IDE = CAN_ID_STD;
-    TxHeader.StdId = 0x6B1;
+    TxHeader.StdId = 0x6B0;
     TxHeader.RTR = CAN_RTR_DATA;
     TxHeader.DLC = 8;
 
-    TxData[0] = 0x9;  
+    TxData[0] = 0x9; 
     TxData[1] = 0x10; 
-    TxData[2] = 0x90; 
-    TxData[3] = 0x01; 
+    TxData[2] = target & 0xFF; 
+    TxData[3] = (target >> 8) & 0xFF; 
     TxData[4] = 0x05; 
     TxData[5] = 0x06; 
     TxData[6] = 0x07; 
     TxData[7] = 0x11; 
-  }
-  else if (target == '1'){
-    TxHeader.IDE = CAN_ID_EXT;
-    TxHeader.ExtId = 0x0CF11E05;
+  } else {
+    TxHeader.IDE = CAN_ID_STD;
+    TxHeader.StdId = 0x6B0;
     TxHeader.RTR = CAN_RTR_DATA;
     TxHeader.DLC = 8;
 
-    TxData[0] = 0x9;  
+    TxData[0] = 0x9; 
     TxData[1] = 0x10; 
-    TxData[2] = 0x90; 
-    TxData[3] = 0x01; 
+    TxData[2] = 0x00; 
+    TxData[3] = 0x00; 
     TxData[4] = 0x05; 
     TxData[5] = 0x06; 
     TxData[6] = 0x07; 
     TxData[7] = 0x11; 
-  }
+  } 
 
+}
+
+
+
+cli_status_t set_bms(int argc, char **argv) {
+  if (argc == 2) {
+    bms_value = atoi(argv[1]);  
+    cli.println("BMS VALUE: ");
+    cli.println(argv[1]);
+    CANSend_BMS(bms_value);
+    HAL_GPIO_TogglePin(USER_LED_GPIO_Port, USER_LED_Pin);
+    
+  } else {
+    cli.println("ERROR");
+    return CLI_E_INVALID_ARGS;
+  }
+  return CLI_OK;
 }
 
 /* USER CODE END 4 */
