@@ -286,10 +286,16 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan1)
               uint8_t pack_soc          = canRX[4];
               uint8_t pack_relay_state  = canRX[5];
 
-              printf("Pack Current: %d\r\n", pack_current);
+              //printf("Pack Current: %d\r\n", pack_current);
               printf("Pack Voltage: %d\r\n", pack_voltage);
               printf("Pack SoC: %d\r\n", pack_soc);
-              printf("Pack Relay Status: %d\r\n", pack_relay_state);
+              //printf("Pack Relay Status: %d\r\n", pack_relay_state);
+
+              printf("Message length is %ld byte(s)\r\n", RxHeader.DLC);
+                for (uint8_t i = 0; i < 8; i++)
+                {
+                    printf("Byte %d: 0x%02X\r\n", i, canRX[i]);
+                }
 
             }
             else if(RxHeader.StdId == 0x6B1){ // BMS
@@ -297,9 +303,9 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan1)
               uint8_t high_temp_derating = canRX[4];
               uint8_t low_temp_derating   = canRX[5];
 
-              printf("Pack DCL: %d\r\n", pack_DCL);
-              printf("High Temp Derating: %d\r\n", high_temp_derating);
-              printf("low_temp_derating: %d\r\n", low_temp_derating);
+              //printf("Pack DCL: %d\r\n", pack_DCL);
+              //printf("High Temp Derating: %d\r\n", high_temp_derating);
+              //printf("low_temp_derating: %d\r\n", low_temp_derating);
             }
             else
             {
@@ -377,11 +383,7 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan1)
         }
 
     
-        printf("Message length is %ld byte(s)\r\n", RxHeader.DLC);
-        for (uint8_t i = 0; i < 8; i++)
-        {
-            printf("Byte %d: 0x%02X\r\n", i, canRX[i]);
-        }
+        
     }
 }
 

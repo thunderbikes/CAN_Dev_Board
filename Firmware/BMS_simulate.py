@@ -13,7 +13,7 @@ else:
 # Global variable for shared value
 value_lock = threading.Lock()  # Lock for thread-safe access to the value
 value = 0
-delay = 0.1  # 100ms
+delay = 0.05  # 50ms
 
 # Function to send data
 def send_data(log_widget):
@@ -51,10 +51,11 @@ def update_value(new_value):
     with value_lock:
         value = new_value
 
+
 # Create Tkinter GUI
 def create_gui():
     root = tk.Tk()
-    root.title("BMS Simulation")
+    root.title("Joint Theta Control")
 
     # Make the window always on top
     root.attributes("-topmost", 1)
@@ -62,7 +63,7 @@ def create_gui():
     # Raise the window to the top of the stack
     root.lift()
 
-    tk.Label(root, text="Select BMS Voltage Value").pack(pady=10)
+    tk.Label(root, text="Select Theta Value").pack(pady=10)
 
     # Create a slider
     slider = tk.Scale(
